@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}إخراج منتجات{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">إخراج منتجات من المخزون</h2>
+    <form method="post" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="product_id_select" class="form-label">اختر المنتج يدوياً:</label>
+            <select name="product_id" id="product_id_select" class="form-select" required>
+                <option value="">-- اختر منتج --</option>
+                {% for product in products %}
+                    <option value="{{ product.id }}" data-product-code="{{ product.product_code }}" data-available-quantity="{{ product.quantity }}">{{ product.product_code }} (الكمية: {{ product.quantity }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="scan_product_code" class="form-label">أو امسح رمز المنتج ضوئياً:</label>
+            <div class="input-group">
+                <input type="text" id="scan_product_code" class="form-control form-control-lg" placeholder="رمز المنتج أو مسح الباركود" autofocus>
+                <button class="btn btn-outline-secondary" type="button" id="lookupProductBtn">بحث</button>
+            </div>
+            <div id="scanFeedback" class="mt-2 text-muted"></div>
+        </div>
+
+        <div class="mb-3">
+            <label for="issued_quantity" class="form-label">الكمية المراد إخراجها:</label>
+            <input type="number" name="issued_quantity" id="issued_quantity" class="form-control" min="1" required>
+            <small id="quantityHelp" class="form-text text-muted"></small>
+        </div>
+
+        <div class="mb-3">
+            <label for="issue_reason" class="form-label">سبب الإخراج:</label>
+            <textarea name="issue_reason" id="issue_reason" rows="3" class="form-control" placeholder="مثال: للاستخدام في المشروع X، بيع للعميل Y، تلف" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-danger">إخراج المنتجات</button>
+    </form>
+    <br>
+    <a href="{{ url_for('main.index') }}" class="btn btn-info">العودة للوحة التحكم</a>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productSelect = document.getElementById('product_id_select');
+        const scanProductCodeInput = document.getElementById('scan_product_code');
+        const lookupProductBtn = document.getElementById('lookupProductBtn');
+        const scanFeedbackDiv = document.getElementById('scanFeedback');
+        const issuedQuantityInput = document.getElementById('issued_quantity');
+        const quantityHelpText = document.getElementById('quantityHelp');
+
+        function updateMaxQuantity() {
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            const availableQuantity = parseInt(selectedOption.dataset.availableQuantity);
+            
+            if (!isNaN(availableQuantity)) {
+                issuedQuantityInput.max = availableQuantity;
+                quantityHelpText.textContent = `الكمية المتاحة: ${availableQuantity}`;
+                if (parseInt(issuedQuantityInput.value) > availableQuantity) {
+                    issuedQuantityInput.value = availableQuantity;
+                }
+            } else {
+                issuedQuantityInput.max = null;
+                quantityHelpText.textContent = '';
+            }
+        }
+
+        function lookupProductByCode(productCode) {
+            let found = false;
+            for (let i = 0; i < productSelect.options.length; i++) {
+                const option = productSelect.options[i];
+                if (option.dataset.productCode === productCode) {
+                    productSelect.value = option.value;
+                    updateMaxQuantity(); // تحديث الكمية المتاحة
+                    scanFeedbackDiv.innerHTML = '<span class="text-success">تم العثور على المنتج وتحديده.</span>';
+                    issuedQuantityInput.focus();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                scanFeedbackDiv.innerHTML = '<span class="text-danger">لم يتم العثور على المنتج بهذا الرمز.</span>';
+            }
+        }
+
+        scanProductCodeInput.addEventListener('keyup', function(event) {
+            if (event.keyCode === 13) { 
+                lookupProductByCode(scanProductCodeInput.value.toUpperCase().trim());
+                scanProductCodeInput.value = ''; 
+            }
+        });
+
+        lookupProductBtn.addEventListener('click', function() {
+            lookupProductByCode(scanProductCodeInput.value.toUpperCase().trim());
+            scanProductCodeInput.value = '';
+        });
+
+        productSelect.addEventListener('change', updateMaxQuantity);
+
+        // تحديث الكمية القصوى عند التحميل الأولي إذا كان هناك منتج محدد
+        if (productSelect.value) {
+            updateMaxQuantity();
+        }
+    });
+</script>
+{% endblock %}

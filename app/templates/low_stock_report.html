@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير المنتجات منخفضة الكمية{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">تقرير المنتجات منخفضة الكمية (أقل من أو تساوي {{ low_stock_threshold }})</h2>
+    {% if low_stock_products %}
+    <table id="lowStockTable" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>رمز المنتج</th>
+                <th>الراك (Rack)</th>
+                <th>السلة (Bin)</th>
+                <th>الفئة</th>
+                <th>الكمية</th>
+                <th class="text-center">الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in low_stock_products %}
+            <tr>
+                <td>{{ product.product_code }}</td>
+                <td>{{ product.rack_name if product.rack_name else 'N/A' }}</td>
+                <td>{{ product.bin_name if product.bin_name else 'N/A' }}</td>
+                <td>{{ product.category_name if product.category_name else 'N/A' }}</td>
+                <td class="text-danger fw-bold">{{ product.quantity }}</td> {# text-danger fw-bold for bold red text #}
+                <td class="text-center">
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{{ url_for('products.edit_product', id=product.id) }}" class="btn btn-sm btn-warning">تعديل</a>
+                        <form action="{{ url_for('products.update_quantity', id=product.id) }}" method="post" class="d-inline-flex align-items-center gap-1">
+                            <input type="number" name="change_amount" value="1" min="1" class="form-control form-control-sm" style="width: 60px;">
+                            <button type="submit" name="action" value="increase" class="btn btn-sm btn-success">+</button>
+                            <button type="submit" name="action" value="decrease" class="btn btn-sm btn-danger">-</button>
+                        </form>
+                        <a href="{{ url_for('main.product_audit_trail_by_product', product_id=product.id) }}" class="btn btn-sm btn-outline-info" title="عرض سجل التدقيق">سجل</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-success" role="alert">
+            لا توجد منتجات بكميات منخفضة حاليًا. كل شيء على ما يرام!
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#lowStockTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+    });
+</script>
+{% endblock %}

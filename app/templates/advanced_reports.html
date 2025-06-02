@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}التقارير المتقدمة{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">التقارير المتقدمة</h2>
+    <form method="post" class="p-4 border rounded shadow-sm">
+        <div class="row g-3 mb-3">
+            {# نوع التقرير #}
+            <div class="col-md-6">
+                <label for="report_type" class="form-label">نوع التقرير:</label>
+                <select name="report_type" id="report_type" class="form-select">
+                    <option value="filtered_products" {% if report_type == 'filtered_products' %}selected{% endif %}>المنتجات المفلترة</option>
+                    <option value="most_moved_products" {% if report_type == 'most_moved_products' %}selected{% endif %}>المنتجات الأكثر/الأقل حركة</option>
+                    <option value="dead_stock" {% if report_type == 'dead_stock' %}selected{% endif %}>المخزون الميت</option>
+                </select>
+            </div>
+            {# تصفية حسب الفئة #}
+            <div class="col-md-6">
+                <label for="category_id" class="form-label">تصفية حسب الفئة:</label>
+                <select name="category_id" id="category_id" class="form-select">
+                    <option value="">-- كل الفئات --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if selected_category_id|string == category.id|string %}selected{% endif %}>{{ category.name }}</option> {# تحويل كلا الطرفين إلى سلسلة #}
+                    {% endfor %}
+                </select>
+            </div>
+            {# تصفية حسب الراك #}
+            <div class="col-md-6">
+                <label for="rack_id" class="form-label">تصفية حسب الراك:</label>
+                <select name="rack_id" id="rack_id" class="form-select">
+                    <option value="">-- كل الراكات --</option>
+                    {% for rack in racks %}
+                        <option value="{{ rack.id }}" {% if selected_rack_id|string == rack.id|string %}selected{% endif %}>{{ rack.name }}</option> {# تحويل كلا الطرفين إلى سلسلة #}
+                    {% endfor %}
+                </select>
+            </div>
+            {# تصفية حسب منتج معين (متقدم) #}
+            <div class="col-md-6">
+                <label for="product_id" class="form-label">تصفية حسب منتج محدد:</label>
+                <select name="product_id" id="product_id" class="form-select">
+                    <option value="">-- كل المنتجات --</option>
+                    {% for p in all_products %}
+                        <option value="{{ p.id }}" {% if selected_product_id|string == p.id|string %}selected{% endif %}>{{ p.product_code }}</option> {# تحويل كلا الطرفين إلى سلسلة #}
+                    {% endfor %}
+                </select>
+            </div>
+            {# نطاق الكمية #}
+            <div class="col-md-3">
+                <label for="min_quantity" class="form-label">الحد الأدنى للكمية:</label>
+                <input type="number" name="min_quantity" id="min_quantity" class="form-control" value="{{ min_quantity | default('') }}" min="0" placeholder="أقل كمية"> {# استخدام default('') #}
+            </div>
+            <div class="col-md-3">
+                <label for="max_quantity" class="form-label">الحد الأقصى للكمية:</label>
+                <input type="number" name="max_quantity" id="max_quantity" class="form-control" value="{{ max_quantity | default('') }}" min="0" placeholder="أقصى كمية"> {# استخدام default('') #}
+            </div>
+            {# نطاق تاريخ الحركة #}
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">تاريخ الحركة من:</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date | default('') }}"> {# استخدام default('') #}
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">تاريخ الحركة إلى:</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date | default('') }}"> {# استخدام default('') #}
+            </div>
+            {# حقل خاص بالمخزون الميت #}
+            <div class="col-md-6 dead-stock-field" style="display: {% if report_type == 'dead_stock' %}block{% else %}none{% endif %};">
+                <label for="dead_stock_days_filter" class="form-label">لم تتحرك منذ (أيام):</label>
+                <input type="number" name="dead_stock_days_filter" id="dead_stock_days_filter" class="form-control" value="90" min="0">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">توليد التقرير</button>
+    </form>
+
+    {% if filtered_products is not none %}
+        <h3 class="mt-5 mb-3">{{ report_title }}</h3>
+        {% if filtered_products %}
+        <table id="advancedReportsTable" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>رمز المنتج</th>
+                    <th>الراك (Rack)</th>
+                    <th>السلة (Bin)</th>
+                    <th>الفئة</th>
+                    <th>الكمية</th>
+                    {# أعمدة إضافية لتقرير حركة المنتجات #}
+                    {% if report_type == 'most_moved_products' %}
+                        <th>عدد الإدخالات</th>
+                        <th>عدد الإخراجات</th>
+                    {% endif %}
+                    {# أعمدة إضافية لتقرير المخزون الميت #}
+                    {% if report_type == 'dead_stock' %}
+                        <th>آخر حركة (تاريخ)</th>
+                    {% endif %}
+                    <th class="text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in filtered_products %}
+                <tr>
+                    <td>{{ product.product_code }}</td>
+                    <td>{{ product.rack_name if product.rack_name else 'N/A' }}</td>
+                    <td>{{ product.bin_name if product.bin_name else 'N/A' }}</td>
+                    <td>{{ product.category_name if product.category_name else 'N/A' }}</td>
+                    <td>{{ product.quantity }}</td>
+                    {# عرض أعمدة تقرير الحركة #}
+                    {% if report_type == 'most_moved_products' %}
+                        <td>{{ product.inbound_count }}</td>
+                        <td>{{ product.outbound_count }}</td>
+                    {% endif %}
+                    {# عرض أعمدة تقرير المخزون الميت #}
+                    {% if report_type == 'dead_stock' %}
+                        <td>{{ product.last_movement_date if product.last_movement_date else 'لا يوجد' }}</td>
+                    {% endif %}
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('products.edit_product', id=product.id) }}" class="btn btn-sm btn-warning">تعديل</a>
+                            <form action="{{ url_for('products.delete_product', id=product.id) }}" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد أنك تريد حذف هذا المنتج؟');">
+                                <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                            </form>
+                            <a href="{{ url_for('main.product_audit_trail_by_product', product_id=product.id) }}" class="btn btn-sm btn-outline-info" title="عرض سجل التدقيق">سجل</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <div class="alert alert-info mt-4" role="alert">
+                لا توجد منتجات مطابقة للمعايير المحددة.
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        if ($.fn.DataTable.isDataTable('#advancedReportsTable')) {
+            $('#advancedReportsTable').DataTable().destroy();
+        }
+        $('#advancedReportsTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+
+        const reportTypeSelect = document.getElementById('report_type');
+        const deadStockField = document.querySelector('.dead-stock-field');
+
+        function toggleDeadStockField() {
+            if (reportTypeSelect.value === 'dead_stock') {
+                deadStockField.style.display = 'block';
+            } else {
+                deadStockField.style.display = 'none';
+            }
+        }
+
+        reportTypeSelect.addEventListener('change', toggleDeadStockField);
+        toggleDeadStockField(); // Call on initial load
+    });
+</script>
+{% endblock %}

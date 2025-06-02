@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل الدور: {{ role.name }}{% endblock %}
+
+{% block content %}
+    <h2>تعديل الدور: {{ role.name }}</h2>
+    <form method="post">
+        <label for="name">اسم الدور:</label>
+        <input type="text" name="name" id="name" value="{{ role.name }}" required>
+
+        <label>الصلاحيات:</label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            {% for permission in all_permissions %}
+                <div class="checkbox-group">
+                    <input type="checkbox" name="permissions" id="perm_{{ permission.id }}" value="{{ permission.id }}"
+                        {% if permission.id in current_permissions_ids %}checked{% endif %}>
+                    <label for="perm_{{ permission.id }}">{{ permission.name }}</label>
+                </div>
+            {% endfor %}
+        </div>
+        <br>
+        <input type="submit" value="تحديث الدور">
+    </form>
+    <br>
+    <a href="{{ url_for('auth.list_roles') }}" class="button info">العودة لقائمة الأدوار</a>
+{% endblock %}

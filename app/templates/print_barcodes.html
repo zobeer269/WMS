@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}طباعة الباركودات{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">طباعة الباركودات (QR Codes)</h2>
+    <p class="lead">انقر على زر "توليد وعرض QR" لإنشاء رمز QR لكل منتج. يمكنك بعد ذلك طباعة هذه الصفحة.</p>
+    <div class="print-area">
+        {% if products %}
+            {% for product in products %}
+            <div class="barcode-item border p-3 mb-3 text-center shadow-sm rounded">
+                <h3 class="h5">{{ product.product_code }}</h3>
+                <img id="qrcode-{{ product.product_code }}" alt="QR Code" class="img-fluid border p-1" style="max-width: 150px; max-height: 150px;">
+                <p class="mt-2 mb-0 text-muted" style="font-size: 0.8em;">{{ product.product_code }}</p>
+                <button type="button" class="generate-qr-button btn btn-sm btn-outline-secondary mt-2" data-product-code="{{ product.product_code }}">توليد وعرض QR</button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                لا توجد منتجات لطباعة الباركودات. <a href="{{ url_for('products.add_product') }}" class="alert-link">أضف منتجًا</a>.
+            </div>
+        {% endif %}
+    </div>
+    <br>
+    <button onclick="window.print()" class="btn btn-success d-print-none">طباعة هذه الصفحة</button> {# d-print-none to hide button when printing #}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const buttons = document.querySelectorAll('.generate-qr-button');
+        
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                const productCode = this.dataset.productCode;
+                const imgElement = document.getElementById(`qrcode-${productCode}`);
+                
+                imgElement.alt = 'جارٍ التوليد...';
+                imgElement.src = ''; 
+                this.disabled = true; // تعطيل الزر أثناء التوليد
+
+                fetch(`/inventory_ops/generate_qrcode/${productCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.image_base64) {
+                            imgElement.src = `data:image/png;base64,${data.image_base64}`;
+                            imgElement.alt = `QR Code for ${productCode}`;
+                        } else {
+                            imgElement.alt = 'فشل التوليد';
+                            console.error('API returned no image_base64:', data.error || data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error generating QR code:', error);
+                        imgElement.alt = 'خطأ في التوليد.';
+                    })
+                    .finally(() => {
+                        this.disabled = false; // تفعيل الزر مرة أخرى
+                    });
+            });
+        });
+    });
+</script>
+<style>
+    /* أنماط خاصة بالطباعة */
+    @media print {
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: white !important;
+            color: black !important;
+        }
+        .navbar, .container-main > .alert, .btn { /* Adjusted selector for container-main */
+            display: none !important; /* إخفاء عناصر التنقل والرسائل والأزرار عند الطباعة */
+        }
+        .print-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* تقليل المسافة بين العناصر عند الطباعة */
+            justify-content: flex-start;
+            page-break-after: always; /* لبدء صفحة جديدة بعد هذا القسم */
+            margin: 0; /* إزالة الهامش */
+            padding: 0; /* إزالة التوسيع */
+        }
+        .barcode-item {
+            border: 1px solid #ccc;
+            padding: 8px; /* تقليل التوسيع */
+            text-align: center;
+            width: 170px; /* حجم ثابت للعنصر عند الطباعة */
+            height: auto; /* ارتفاع تلقائي */
+            box-sizing: border-box;
+            page-break-inside: avoid; /* منع انقسام العنصر عند الطباعة */
+            box-shadow: none !important; /* إزالة الظل عند الطباعة */
+            margin: 0; /* إزالة الهامش */
+            break-inside: avoid-column; /* لمنع الانقسام في الأعمدة */
+            flex-shrink: 0; /* لا ينكمش */
+            flex-grow: 0; /* لا يتمدد */
+        }
+        .barcode-item h3 {
+            font-size: 0.9em; /* حجم خط أصغر */
+            margin-bottom: 3px; /* مسافة أقل */
+            color: black;
+        }
+        .barcode-item img {
+            width: 110px !important; /* حجم ثابت للصور عند الطباعة */
+            height: 110px !important;
+            padding: 0; /* إزالة التوسيع */
+            border: none !important; /* إزالة الحدود */
+        }
+        .barcode-item p {
+            font-size: 0.7em !important; /* حجم خط أصغر */
+            margin-top: 3px !important;
+            margin-bottom: 0 !important;
+        }
+        .barcode-item button {
+            display: none !important; /* إخفاء زر التوليد عند الطباعة */
+        }
+    }
+</style>
+{% endblock %}

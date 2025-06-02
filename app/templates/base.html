@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}نظام إدارة المخزون{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap5.css">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f2f5;
+            color: #34495e;
+            line-height: 1.6;
+        }
+        .navbar {
+            background-color: #2c3e50 !important; /* override Bootstrap default */
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .navbar .nav-link, .navbar .navbar-brand, .navbar .dropdown-toggle {
+            color: white !important;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .navbar .nav-link:hover, .navbar .navbar-brand:hover, .navbar .dropdown-toggle:hover {
+            background-color: #34495e;
+            transform: translateY(-3px);
+        }
+        .navbar .current-user {
+            color: #aeb6bf;
+            padding: 0.5rem 1rem;
+            font-size: 0.9em;
+        }
+        .container-main { /* استخدام اسم فئة مختلف لتجنب تعارض Bootstrap */
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+            font-weight: 700;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            border: 1px solid #e0e6eb;
+            border-radius: 8px;
+            background-color: #fdfdfd;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #5d6d7e;
+        }
+        /* Bootstrap يقوم بتصميم هذه العناصر، هذا للتعديلات إذا لزم الأمر */
+        /* input[type="text"], input[type="number"], input[type="password"], select, textarea, input[type="file"] {
+            padding: 12px;
+            border: 1px solid #c8d3db;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        } */
+        .btn-custom-success { /* زر أخضر مخصص */
+            background-color: #28a745;
+            color: white;
+            border: none;
+        }
+        .btn-custom-success:hover {
+            background-color: #218838;
+        }
+        .btn-custom-primary { /* زر أزرق مخصص */
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        .btn-custom-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-custom-danger { /* زر أحمر مخصص */
+            background-color: #dc3545;
+            color: white;
+            border: none;
+        }
+        .btn-custom-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-custom-info { /* زر أزرق فاتح مخصص */
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+        }
+        .btn-custom-info:hover {
+            background-color: #138496;
+        }
+        .btn-custom-secondary { /* زر رمادي مخصص */
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
+        .btn-custom-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            animation: fadeOut 8s forwards;
+        }
+        .message.alert-danger { /* تطابق فئات Bootstrap alerts */
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .message.alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
+        .product-result, .dashboard-stats, .scan-box, .chart-container {
+            margin-top: 25px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #f0f4f7;
+            text-align: center;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .dashboard-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .stat-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            flex: 1;
+        }
+        .stat-box h3 {
+            color: #6c757d;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .stat-box .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-box.warning-color .value {
+            color: #ffc107;
+        }
+        .stat-box.danger-color .value {
+            color: #dc3545;
+        }
+        .scan-box input[type="text"] {
+            /* Bootstrap handles most of this */
+        }
+        .scan-box button {
+            /* Bootstrap handles most of this */
+        }
+        #scanResult {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+            color: #343a40;
+            font-weight: bold;
+            text-align: center;
+        }
+        /* DataTables Overrides for RTL */
+        .dataTables_wrapper .dataTables_filter {
+            float: right;
+        }
+        .dataTables_wrapper .dataTables_length {
+            float: right;
+        }
+        .dataTables_wrapper .dataTables_info {
+            float: right;
+        }
+        .dataTables_wrapper .dataTables_paginate {
+            float: left;
+        }
+        .dataTables_wrapper .dataTables_filter .form-control { /* تصميم حقل البحث في DataTables */
+            margin-right: 0.5em;
+            margin-left: 0;
+            width: auto; /* Bootstrap يضبط العرض، نعدله هنا */
+            display: inline-block;
+        }
+        .dataTables_wrapper .dataTables_length .form-select { /* تصميم قائمة العرض في DataTables */
+            margin-left: 0.5em;
+            margin-right: 0;
+            width: auto;
+            display: inline-block;
+        }
+        /* Dropdown CSS for Data Management */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+            right: 0;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: right;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropbtn {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .dropbtn:hover {
+            background-color: #34495e;
+            transform: translateY(-3px);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px; /* تقليل المسافة في مجموعات الخيارات */
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark"> {# فئات Bootstrap هنا #}
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">إدارة المخزون</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-center" id="navbarNavDropdown">
+                <ul class="navbar-nav">
+                    {% if g.user %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.index') }}">لوحة التحكم</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('products.list_products') }}">كل المنتجات</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('products.add_product') }}">إضافة منتج</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('products.search_product') }}">بحث متقدم</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.low_stock_report') }}">المنتجات منخفضة الكمية</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('transactions.list_transactions') }}">سجل الحركات</a>
+                        </li>
+                        
+                        {# الروابط التي تتطلب صلاحيات معينة #}
+                        {% set user_permissions = g.user_permissions if g.user and g.user_permissions else [] %}
+
+                        {% if 'can_manage_users' in user_permissions or 'can_view_users' in user_permissions %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    إدارة المستخدمين
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="usersDropdown">
+                                    {% if 'can_view_users' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('auth.list_users') }}">قائمة المستخدمين</a></li>{% endif %}
+                                    {% if 'can_manage_users' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('auth.add_user') }}">إضافة مستخدم</a></li>{% endif %}
+                                    {% if 'can_view_roles' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('auth.list_roles') }}">إدارة الأدوار</a></li>{% endif %}
+                                    {% if 'can_manage_roles' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('auth.add_role') }}">إضافة دور</a></li>{% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                        {% if 'can_manage_categories' in user_permissions or 'can_view_categories' in user_permissions %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="categoriesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    إدارة الفئات
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="categoriesDropdown">
+                                    {% if 'can_view_categories' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('categories.list_categories') }}">قائمة الفئات</a></li>{% endif %}
+                                    {% if 'can_manage_categories' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('categories.add_category') }}">إضافة فئة</a></li>{% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        
+                        {% if 'can_export_data' in user_permissions or 'can_import_data' in user_permissions %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="dataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    البيانات (إدارة)
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="dataDropdown">
+                                    {% if 'can_export_data' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('inventory_ops.export_products_csv') }}">تصدير المنتجات (CSV)</a></li>{% endif %}
+                                    {% if 'can_import_data' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('inventory_ops.import_products_csv') }}">استيراد المنتجات (CSV)</a></li>{% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                        {% if 'can_manage_locations' in user_permissions or 'can_view_locations' in user_permissions %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="locationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    إدارة المواقع
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="locationsDropdown">
+                                    {% if 'can_view_locations' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('locations.list_racks') }}">الراكات</a></li>{% endif %}
+                                    {% if 'can_view_locations' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('locations.list_bins') }}">السلات</a></li>{% endif %}
+                                    {% if 'can_manage_locations' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('locations.add_rack') }}">إضافة راك</a></li>{% endif %}
+                                    {% if 'can_manage_locations' in user_permissions %}<li><a class="dropdown-item" href="{{ url_for('locations.add_bin') }}">إضافة سلة</a></li>{% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                        {% if 'can_perform_cycle_count' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('inventory_ops.cycle_count_start') }}">الجرد الدوري</a>
+                            </li>
+                        {% endif %}
+
+                        {% if 'can_print_barcodes' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('inventory_ops.print_barcodes') }}">طباعة الباركودات</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% if 'can_view_advanced_reports' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.advanced_reports') }}">التقارير المخصصة</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% if 'can_receive_products' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('inventory_ops.receive_product') }}">استلام منتجات</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% if 'can_issue_products' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('inventory_ops.issue_product') }}">إخراج منتجات</a>
+                            </li>
+                        {% endif %}
+
+                        {% if 'can_view_audit_trail' in user_permissions %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('main.product_audit_trail') }}">سجل تدقيق المنتجات</a>
+                            </li>
+                        {% endif %}
+
+                        {# قسم المستخدم وتسجيل الخروج #}
+                        <li class="nav-item dropdown ms-auto"> {# ms-auto لدفع العناصر إلى اليمين #}
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                مرحباً، {{ g.user['username'] }}! {% if g.user_permissions and 'can_manage_users' in g.user_permissions %}(مدير){% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown"> {# dropdown-menu-end لظهور القائمة على اليمين #}
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">تسجيل الخروج</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item ms-auto">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">تسجيل الدخول</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container-main"> {# تم تغيير اسم الفئة لتجنب تعارض Bootstrap #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }} alert-dismissible fade show" role="alert"> {# فئات Bootstrap alerts #}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/2.0.7/js/dataTables.bootstrap5.js"></script> {# DataTables Bootstrap Integration #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block body_scripts %}{% endblock %}
+</body>
+</html>

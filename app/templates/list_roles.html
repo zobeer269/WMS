@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الأدوار والصلاحيات{% endblock %}
+
+{% block content %}
+    <h2>إدارة الأدوار والصلاحيات</h2>
+    <p><a href="{{ url_for('auth.add_role') }}" class="button primary">إضافة دور جديد</a></p>
+    {% if roles %}
+    <table id="rolesTable" class="display">
+        <thead>
+            <tr>
+                <th>اسم الدور</th>
+                <th>الصلاحيات</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for role in roles %}
+            <tr>
+                <td>{{ role.name }}</td>
+                <td>
+                    {% if role.permissions %}
+                        {{ role.permissions | join(', ') }}
+                    {% else %}
+                        لا توجد صلاحيات
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="{{ url_for('auth.edit_role', id=role.id) }}" class="button edit-btn">تعديل</a>
+                    <form action="{{ url_for('auth.delete_role', id=role.id) }}" method="post" class="delete-form" onsubmit="return confirm('هل أنت متأكد أنك تريد حذف الدور {{ role.name }}؟ سيتم منع الحذف إذا كان هناك مستخدمون مرتبطون به.');">
+                        <button type="submit" class="button danger">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>لا توجد أدوار حاليًا. <a href="{{ url_for('auth.add_role') }}" class="button secondary">أضف دورًا جديدًا</a>.</p>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#rolesTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+    });
+</script>
+{% endblock %}

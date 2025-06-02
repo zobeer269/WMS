@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الراكات{% endblock %}
+
+{% block content %}
+    <h2>إدارة الراكات</h2>
+    <p><a href="{{ url_for('locations.add_rack') }}" class="button primary">إضافة راك جديد</a></p>
+    {% if racks %}
+    <table id="racksTable" class="display">
+        <thead>
+            <tr>
+                <th>اسم الراك</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rack in racks %}
+            <tr>
+                <td>{{ rack.name }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('locations.edit_rack', id=rack.id) }}" class="button edit-btn">تعديل</a>
+                    <form action="{{ url_for('locations.delete_rack', id=rack.id) }}" method="post" class="delete-form" onsubmit="return confirm('هل أنت متأكد أنك تريد حذف الراك {{ rack.name }}؟ سيتم منع الحذف إذا كانت هناك سلات مرتبطة به.');">
+                        <button type="submit" class="button danger">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>لا توجد راكات حاليًا. <a href="{{ url_for('locations.add_rack') }}" class="button secondary">أضف راكًا جديدًا</a>.</p>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#racksTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+    });
+</script>
+{% endblock %}

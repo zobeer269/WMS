@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}استلام منتجات{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">استلام منتجات جديدة</h2>
+    <form method="post" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="product_id_select" class="form-label">اختر المنتج يدوياً:</label>
+            <select name="product_id" id="product_id_select" class="form-select" required>
+                <option value="">-- اختر منتج --</option>
+                {% for product in products %}
+                    <option value="{{ product.id }}" data-product-code="{{ product.product_code }}">{{ product.product_code }} ({{ product.rack_name if product.rack_name else 'N/A' }}/{{ product.bin_name if product.bin_name else 'N/A' }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="scan_product_code" class="form-label">أو امسح رمز المنتج ضوئياً:</label>
+            <div class="input-group">
+                <input type="text" id="scan_product_code" class="form-control form-control-lg" placeholder="رمز المنتج أو مسح الباركود" autofocus>
+                <button class="btn btn-outline-secondary" type="button" id="lookupProductBtn">بحث</button>
+            </div>
+            <div id="scanFeedback" class="mt-2 text-muted"></div>
+        </div>
+
+        <div class="mb-3">
+            <label for="received_quantity" class="form-label">الكمية المستلمة:</label>
+            <input type="number" name="received_quantity" id="received_quantity" class="form-control" min="1" required>
+        </div>
+
+        <button type="submit" class="btn btn-success">استلام المنتجات</button>
+    </form>
+    <br>
+    <a href="{{ url_for('main.index') }}" class="btn btn-info">العودة للوحة التحكم</a>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const productSelect = document.getElementById('product_id_select');
+        const scanProductCodeInput = document.getElementById('scan_product_code');
+        const lookupProductBtn = document.getElementById('lookupProductBtn');
+        const scanFeedbackDiv = document.getElementById('scanFeedback');
+        const receivedQuantityInput = document.getElementById('received_quantity');
+
+        // وظيفة للبحث عن المنتج وتحديده في القائمة المنسدلة
+        function lookupProductByCode(productCode) {
+            let found = false;
+            for (let i = 0; i < productSelect.options.length; i++) {
+                const option = productSelect.options[i];
+                if (option.dataset.productCode === productCode) {
+                    productSelect.value = option.value; // حدد الخيار في القائمة المنسدلة
+                    scanFeedbackDiv.innerHTML = '<span class="text-success">تم العثور على المنتج وتحديده.</span>';
+                    receivedQuantityInput.focus(); // ركز على حقل الكمية
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                scanFeedbackDiv.innerHTML = '<span class="text-danger">لم يتم العثور على المنتج بهذا الرمز.</span>';
+            }
+        }
+
+        // حدث عند كتابة (أو مسح) في حقل رمز المنتج
+        scanProductCodeInput.addEventListener('keyup', function(event) {
+            if (event.keyCode === 13) { // عند الضغط على Enter
+                lookupProductByCode(scanProductCodeInput.value.toUpperCase().trim());
+                scanProductCodeInput.value = ''; // مسح الحقل بعد البحث
+            }
+        });
+
+        // حدث عند النقر على زر "بحث"
+        lookupProductBtn.addEventListener('click', function() {
+            lookupProductByCode(scanProductCodeInput.value.toUpperCase().trim());
+            scanProductCodeInput.value = '';
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل سلة{% endblock %}
+
+{% block content %}
+    <h2>تعديل السلة: {{ bin_data.name }}</h2>
+    <form method="post">
+        <label for="name">اسم السلة:</label>
+        <input type="text" name="name" id="name" value="{{ bin_data.name }}" required>
+
+        <label for="rack_id">الراك (Rack):</label>
+        <select name="rack_id" id="rack_id" required>
+            <option value="">اختر راك...</option>
+            {% for rack in racks %}
+                <option value="{{ rack.id }}" {% if rack.id == bin_data.rack_id %}selected{% endif %}>{{ rack.name }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="submit" value="تحديث السلة">
+    </form>
+    <br>
+    <a href="{{ url_for('locations.list_bins') }}" class="button info">العودة لقائمة السلات</a>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}استيراد المنتجات{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">استيراد المنتجات من ملف CSV</h2>
+    <div class="alert alert-info" role="alert">
+        <p>الرجاء التأكد أن ملف CSV يحتوي على الأعمدة التالية تمامًا (مع مراعاة حالة الأحرف):</p>
+        <p class="mb-0"><code>product_code,rack,bin,quantity,category</code></p>
+        <p class="mb-0">مثال لسطر واحد في الملف:</p>
+        <p class="mb-0"><code>مسامير_M4,A1,S3,100,مسامير</code></p>
+        <p class="mb-0">إذا كانت الفئة، الراك، أو السلة غير موجودة، سيتم إنشاؤها تلقائياً.</p>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="file" class="form-label">اختر ملف CSV:</label>
+            <input type="file" name="file" id="file" class="form-control" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">استيراد المنتجات</button>
+    </form>
+    <br>
+    <a href="{{ url_for('products.list_products') }}" class="btn btn-info">العودة لقائمة المنتجات</a>
+{% endblock %}

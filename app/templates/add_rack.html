@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة راك{% endblock %}
+
+{% block content %}
+    <h2>إضافة راك جديد</h2>
+    <form method="post">
+        <label for="name">اسم الراك:</label>
+        <input type="text" name="name" id="name" placeholder="مثال: A1, B2" required>
+
+        <input type="submit" value="إضافة الراك">
+    </form>
+    <br>
+    <a href="{{ url_for('locations.list_racks') }}" class="button info">العودة لقائمة الراكات</a>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل منتج{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">تعديل المنتج: {{ product.product_code }}</h2>
+    <form method="post" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="product_code" class="form-label">رمز المنتج:</label>
+            <input type="text" name="product_code" id="product_code" class="form-control" value="{{ product.product_code }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="rack_id" class="form-label">الراك (Rack):</label>
+            <select name="rack_id" id="rack_id" class="form-select" required>
+                <option value="">اختر راك...</option>
+                {% for rack in racks %}
+                    <option value="{{ rack.id }}" {% if rack.id == product.rack_id %}selected{% endif %}>{{ rack.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="bin_id" class="form-label">السلة (Bin):</label>
+            <select name="bin_id" id="bin_id" class="form-select" required>
+                <option value="">اختر سلة...</option>
+                {# سيتم ملء هذا الخيار بواسطة JavaScript بناءً على الراك المحدد #}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="category_id" class="form-label">الفئة:</label>
+            <select name="category_id" id="category_id" class="form-select" required>
+                <option value="">اختر فئة...</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="quantity" class="form-label">الكمية:</label>
+            <input type="number" name="quantity" id="quantity" class="form-control" value="{{ product.quantity }}" min="0" required>
+        </div>
+
+        <button type="submit" class="btn btn-success">تحديث المنتج</button>
+    </form>
+    <br>
+    <a href="{{ url_for('products.list_products') }}" class="btn btn-info">العودة لقائمة المنتجات</a>
+
+    {# إضافة عنصر HTML مخفي لتخزين initialBinId #}
+    <div id="productData" 
+         data-initial-bin-id="{{ product.bin_id | default('') }}"></div> 
+
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rackSelect = document.getElementById('rack_id');
+        const binSelect = document.getElementById('bin_id');
+        const initialRackId = rackSelect.value;
+        
+        const productDataElement = document.getElementById('productData');
+        let initialBinId = null;
+        if (productDataElement && productDataElement.dataset.initialBinId) {
+            initialBinId = parseInt(productDataElement.dataset.initialBinId);
+            if (isNaN(initialBinId)) { 
+                initialBinId = null;
+            }
+        }
+        
+        function fetchBins(rackId, selectedBinId = null) {
+            binSelect.innerHTML = '<option value="">جارٍ التحميل...</option>';
+            if (!rackId) {
+                binSelect.innerHTML = '<option value="">اختر سلة...</option>';
+                return;
+            }
+
+            fetch(`/locations/api/get_bins_by_rack/${rackId}`)
+                .then(response => response.json())
+                .then(bins => {
+                    binSelect.innerHTML = '<option value="">اختر سلة...</option>';
+                    if (bins.length > 0) {
+                        bins.forEach(bin => {
+                            const option = document.createElement('option');
+                            option.value = bin.id;
+                            option.textContent = bin.name;
+                            if (selectedBinId !== null && typeof selectedBinId === 'number' && parseInt(bin.id) === selectedBinId) {
+                                option.selected = true;
+                            }
+                            binSelect.appendChild(option);
+                        });
+                    } else {
+                        binSelect.innerHTML = '<option value="">لا توجد سلات لهذا الراك.</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching bins:', error);
+                    binSelect.innerHTML = '<option value="">خطأ في التحميل.</option>';
+                });
+        }
+
+        rackSelect.addEventListener('change', function() {
+            fetchBins(this.value);
+        });
+
+        if (initialRackId) {
+            fetchBins(initialRackId, initialBinId);
+        }
+    });
+</script>
+{% endblock %}

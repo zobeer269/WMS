@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل مستخدم{% endblock %}
+
+{% block content %}
+    <h2>تعديل المستخدم: {{ user.username }}</h2>
+    <form method="post" class="p-4 border rounded shadow-sm"> {# فئات Bootstrap #}
+        <div class="mb-3">
+            <label for="username" class="form-label">اسم المستخدم:</label>
+            <input type="text" name="username" id="username" class="form-control" value="{{ user.username }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">كلمة المرور (اتركها فارغة لعدم التغيير):</label>
+            <input type="password" name="password" id="password" class="form-control" placeholder="اتركها فارغة لعدم التغيير">
+        </div>
+
+        <div class="mb-3">
+            <label for="role_id" class="form-label">الدور:</label>
+            <select name="role_id" id="role_id" class="form-select" required>
+                <option value="">-- اختر دوراً --</option>
+                {% for role in roles %}
+                    <option value="{{ role.id }}" {% if role.id == user.role_id %}selected{% endif %}>{{ role.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">إدارة مفتاح API:</label>
+            <div class="input-group"> {# Bootstrap input group #}
+                <input type="text" class="form-control" value="{{ user.api_key if user.api_key else 'لا يوجد مفتاح API حالي' }}" readonly>
+                <button type="submit" name="api_key_action" value="generate" class="btn btn-outline-primary">توليد جديد</button>
+                <button type="submit" name="api_key_action" value="revoke" class="btn btn-outline-danger">إلغاء</button>
+            </div>
+            <small class="form-text text-muted">سيتم عرض المفتاح الجديد هنا مرة واحدة فقط بعد التوليد.</small>
+        </div>
+
+        <button type="submit" class="btn btn-success">تحديث المستخدم</button>
+    </form>
+    <br>
+    <a href="{{ url_for('auth.list_users') }}" class="btn btn-info">العودة لقائمة المستخدمين</a>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}بدء الجرد الدوري{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">بدء عملية الجرد الدوري</h2>
+    <p class="lead">اختر الراك الذي ترغب في جرد محتوياته:</p>
+    <form method="post" action="{{ url_for('inventory_ops.cycle_count', rack_id=0) }}" id="startCycleCountForm" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="rack_id" class="form-label">اختر الراك:</label>
+            <select name="rack_id" id="rack_id" class="form-select" required>
+                <option value="">-- اختر راك --</option>
+                {% for rack in racks %}
+                    <option value="{{ rack.id }}">{{ rack.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">بدء الجرد لهذا الراك</button>
+    </form>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('startCycleCountForm');
+        const rackSelect = document.getElementById('rack_id');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            const selectedRackId = rackSelect.value;
+            if (selectedRackId) {
+                form.action = `/inventory_ops/cycle_count/${selectedRackId}`;
+                form.submit();
+            } else {
+                alert('الرجاء اختيار راك للمتابعة.');
+            }
+        });
+    });
+</script>
+{% endblock %}

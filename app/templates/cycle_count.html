@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}جرد الراك: {{ rack_info.name }}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">جرد الراك: {{ rack_info.name }}</h2>
+    {% if products_in_rack %}
+    <form method="post" class="p-4 border rounded shadow-sm">
+        <div class="mb-3">
+            <label for="scan_product_code" class="form-label">امسح رمز المنتج أو أدخله يدوياً:</label>
+            <div class="input-group">
+                <input type="text" id="scan_product_code" class="form-control form-control-lg" placeholder="رمز المنتج أو مسح الباركود" autofocus>
+                <button class="btn btn-outline-secondary" type="button" id="findProductBtn">بحث</button>
+            </div>
+            <div id="scanFeedback" class="mt-2 text-muted"></div>
+        </div>
+
+        <table id="cycleCountTable" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>رمز المنتج</th>
+                    <th>الراك (Rack)</th>
+                    <th>السلة (Bin)</th>
+                    <th>الفئة</th>
+                    <th>كمية النظام</th>
+                    <th>الكمية المجرودة</th>
+                    <th>الفرق</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products_in_rack %}
+                <tr id="product_row_{{ product.id }}">
+                    <td>{{ product.product_code }}</td>
+                    <td>{{ product.rack_name if product.rack_name else 'N/A' }}</td>
+                    <td>{{ product.bin_name if product.bin_name else 'N/A' }}</td>
+                    <td>{{ product.category_name if product.category_name else 'N/A' }}</td>
+                    <td><span class="system-quantity">{{ product.quantity }}</span></td>
+                    <td>
+                        <input type="number" 
+                               name="counted_quantity_{{ product.id }}" 
+                               value="{{ product.quantity }}" 
+                               min="0" 
+                               class="form-control form-control-sm counted-quantity-input" 
+                               data-product-id="{{ product.id }}" 
+                               style="width: 80px; text-align: center;">
+                    </td>
+                    <td><span class="difference-{{ product.id }}">0</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-success mt-3">حفظ نتائج الجرد</button>
+    </form>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            لا توجد منتجات في هذا الراك حاليًا. <a href="{{ url_for('products.add_product') }}" class="alert-link">أضف منتجًا جديدًا</a>.
+        </div>
+    {% endif %}
+    <br>
+    <a href="{{ url_for('inventory_ops.cycle_count_start') }}" class="btn btn-info">العودة لاختيار راك آخر</a>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#cycleCountTable').DataTable({
+            "paging": false,
+            "ordering": false,
+            "info": false,
+            "searching": false, // إخفاء حقل البحث الافتراضي لـ DataTables
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+
+        // وظيفة لحساب الفرق في الكمية
+        $('.counted-quantity-input').on('input', function() {
+            const productId = $(this).data('product-id');
+            const systemQuantity = parseInt($(this).closest('tr').find('.system-quantity').text());
+            const countedQuantity = parseInt($(this).val());
+            const difference = countedQuantity - systemQuantity;
+            
+            const differenceSpan = $(this).closest('tr').find(`.difference-${productId}`);
+            differenceSpan.text(difference);
+
+            if (difference !== 0) {
+                differenceSpan.removeClass('text-success').addClass('text-danger fw-bold');
+            } else {
+                differenceSpan.removeClass('text-danger fw-bold').addClass('text-success');
+            }
+        });
+
+        // حساب الفرق عند تحميل الصفحة لأول مرة
+        $('.counted-quantity-input').each(function() {
+            $(this).trigger('input');
+        });
+
+        // تحسين قارئ الباركود
+        const scanProductCodeInput = document.getElementById('scan_product_code');
+        const findProductBtn = document.getElementById('findProductBtn');
+        const scanFeedbackDiv = document.getElementById('scanFeedback');
+
+        // وظيفة للبحث عن المنتج والتركيز على صفه
+        function findAndFocusProduct(productCode) {
+            const table = $('#cycleCountTable').DataTable();
+            const productRow = $(`#product_row_${productCode}`); // افترض أن ID الصف هو product_row_ID
+            
+            // البحث عن الصف باستخدام DataTables API
+            let foundRow = null;
+            table.rows().every(function() {
+                const data = this.data();
+                if (data[0] === productCode) { // افترض أن رمز المنتج هو العمود الأول
+                    foundRow = this.node();
+                    return false; // يوقف التكرار
+                }
+            });
+
+            if (foundRow) {
+                // Scroll to the row
+                $('html, body').animate({
+                    scrollTop: $(foundRow).offset().top - 100 // -100 لتجنب Navbar
+                }, 500);
+
+                // Highlight the row temporarily
+                $(foundRow).addClass('table-info').fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100, function() {
+                    $(this).removeClass('table-info');
+                });
+                
+                // Focus on the quantity input
+                $(foundRow).find('.counted-quantity-input').focus().select();
+                scanFeedbackDiv.innerHTML = '<span class="text-success">تم العثور على المنتج والتركيز عليه.</span>';
+            } else {
+                scanFeedbackDiv.innerHTML = '<span class="text-danger">لم يتم العثور على المنتج في هذا الجرد.</span>';
+            }
+        }
+
+        // حدث عند كتابة (أو مسح) في حقل رمز المنتج
+        scanProductCodeInput.addEventListener('keyup', function(event) {
+            // قارئات الباركود عادة ما تضغط Enter بعد المسح
+            if (event.keyCode === 13) {
+                findAndFocusProduct(scanProductCodeInput.value.toUpperCase().trim());
+                scanProductCodeInput.value = ''; // مسح الحقل بعد البحث
+            }
+        });
+
+        // حدث عند النقر على زر "بحث"
+        findProductBtn.addEventListener('click', function() {
+            findAndFocusProduct(scanProductCodeInput.value.toUpperCase().trim());
+            scanProductCodeInput.value = '';
+        });
+    });
+</script>
+{% endblock %}

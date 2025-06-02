@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}سجل تدقيق المنتجات{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">سجل تدقيق المنتجات</h2>
+    {% if product_info %}
+        <h3 class="mb-3 text-center">لسجل المنتج: <span class="text-primary">{{ product_info.product_code }}</span></h3>
+        <p class="text-center"><a href="{{ url_for('main.product_audit_trail') }}" class="btn btn-sm btn-outline-info">عرض سجل كل المنتجات</a></p>
+    {% else %}
+        <p class="lead text-center mb-4">هذا السجل يتتبع جميع التغييرات في بيانات المنتجات (إضافة، تحديث، حذف، تحديث كمية).</p>
+    {% endif %}
+
+    {% if audit_records %}
+    <table id="auditTrailTable" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>رمز المنتج</th>
+                <th>المستخدم</th>
+                <th>العملية</th>
+                <th>التاريخ والوقت</th>
+                <th>البيانات القديمة</th>
+                <th>البيانات الجديدة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in audit_records %}
+            <tr>
+                <td>
+                    {% if record.product_id %}
+                        <a href="{{ url_for('main.product_audit_trail_by_product', product_id=record.product_id) }}" class="text-primary">{{ record.product_code if record.product_code else 'N/A' }}</a>
+                    {% else %}
+                        {{ record.product_code if record.product_code else 'N/A' }}
+                    {% endif %}
+                </td>
+                <td>{{ record.username if record.username else 'N/A' }}</td>
+                <td>{{ record.action }}</td>
+                <td>{{ record.timestamp }}</td>
+                <td style="max-width: 300px;"> {# تحديد أقصى عرض #}
+                    {% if record.old_data_parsed %}
+                        <pre style="white-space: pre-wrap; font-size: 0.8em; margin: 0; word-break: break-all;">{{ record.old_data_parsed | tojson(indent=2) }}</pre>
+                    {% else %}
+                        لا يوجد
+                    {% endif %}
+                </td>
+                <td style="max-width: 300px;"> {# تحديد أقصى عرض #}
+                    {% if record.new_data_parsed %}
+                        <pre style="white-space: pre-wrap; font-size: 0.8em; margin: 0; word-break: break-all;">{{ record.new_data_parsed | tojson(indent=2) }}</pre>
+                    {% else %}
+                        لا يوجد
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-info mt-4" role="alert">
+            لا توجد سجلات تدقيق للمنتجات حاليًا.
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#auditTrailTable').DataTable({
+            "order": [[ 3, "desc" ]], 
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+    });
+</script>
+{% endblock %}

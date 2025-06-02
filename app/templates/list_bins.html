@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة السلات{% endblock %}
+
+{% block content %}
+    <h2>إدارة السلات</h2>
+    <p><a href="{{ url_for('locations.add_bin') }}" class="button primary">إضافة سلة جديدة</a></p>
+    {% if bins %}
+    <table id="binsTable" class="display">
+        <thead>
+            <tr>
+                <th>اسم السلة</th>
+                <th>الراك التابع له</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bin in bins %}
+            <tr>
+                <td>{{ bin.name }}</td>
+                <td>{{ bin.rack_name }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('locations.edit_bin', id=bin.id) }}" class="button edit-btn">تعديل</a>
+                    <form action="{{ url_for('locations.delete_bin', id=bin.id) }}" method="post" class="delete-form" onsubmit="return confirm('هل أنت متأكد أنك تريد حذف السلة {{ bin.name }} من الراك {{ bin.rack_name }}؟ سيتم منع الحذف إذا كانت هناك منتجات مرتبطة بها.');">
+                        <button type="submit" class="button danger">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>لا توجد سلات حاليًا. <a href="{{ url_for('locations.add_bin') }}" class="button secondary">أضف سلة جديدة</a>.</p>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    $(document).ready(function() {
+        $('#binsTable').DataTable({
+            "language": {
+                "url": "https://cdn.datatables.net/plug-ins/2.0.7/i18n/ar.json"
+            }
+        });
+    });
+</script>
+{% endblock %}
