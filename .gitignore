@@ -1,0 +1,12 @@
+# Python ignore patterns
+__pycache__/
+*.py[cod]
+*.db
+.venv/
+venv/
+ENV/
+*.egg-info/
+
+# Other environment files
+.env
+
