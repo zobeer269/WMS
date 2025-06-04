@@ -77,6 +77,9 @@ def add_user():
         api_key = None
         if generate_api_key:
             api_key = str(uuid.uuid4()) # توليد مفتاح API فريد
+            hashed_api_key = hashlib.sha256(api_key.encode()).hexdigest()
+        else:
+            hashed_api_key = None
 
         error = None
 
@@ -94,7 +97,7 @@ def add_user():
             try:
                 hashed_password = hashlib.sha256(password.encode()).hexdigest()
                 conn.execute('INSERT INTO users (username, password_hash, role_id, api_key) VALUES (?, ?, ?, ?)',
-                             (username, hashed_password, role_id, api_key))
+                             (username, hashed_password, role_id, hashed_api_key))
                 conn.commit()
                 
                 flash_message = f'تم إضافة المستخدم "{username}" بنجاح!'
@@ -133,11 +136,13 @@ def edit_user(id):
         role_id = request.form['role_id'].strip()
         action = request.form.get('api_key_action') # زر الإجراء الخاص بـ API Key
 
-        api_key = user['api_key'] # البدء بمفتاح API الموجود حالياً
-        
+        api_key = user['api_key'] # البدء بمفتاح API الموجود حالياً (مجزأ)
+        new_plain_key = None
+
         if action == 'generate':
-            api_key = str(uuid.uuid4())
-            flash(f'تم توليد مفتاح API جديد للمستخدم {username}: {api_key}. احفظه جيداً فلن يظهر مرة أخرى!', 'success')
+            new_plain_key = str(uuid.uuid4())
+            api_key = hashlib.sha256(new_plain_key.encode()).hexdigest()
+            flash(f'تم توليد مفتاح API جديد للمستخدم {username}: {new_plain_key}. احفظه جيداً فلن يظهر مرة أخرى!', 'success')
         elif action == 'revoke':
             api_key = None
             flash(f'تم إلغاء مفتاح API للمستخدم {username}.', 'info')

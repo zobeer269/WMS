@@ -1,6 +1,7 @@
 from flask import Flask, g, session, redirect, url_for, flash, request, jsonify
 import sqlite3
 import functools
+import hashlib
 from config import Config
 
 # دالة مساعدة للحصول على اتصال قاعدة البيانات
@@ -19,9 +20,9 @@ def permission_required(permission_name):
             # محاولة المصادقة عبر API Key (لطلبات الـ API)
             api_key = request.headers.get('X-API-Key')
             if api_key:
+                hashed_key = hashlib.sha256(api_key.encode()).hexdigest()
                 conn = get_db_connection()
-                user = conn.execute('SELECT * FROM users WHERE api_key = ?', (api_key,)).fetchone()
-                conn.close()
+                user = conn.execute('SELECT * FROM users WHERE api_key = ?', (hashed_key,)).fetchone()
                 if user:
                     g.user = user
                     # جلب صلاحيات المستخدم API Key
@@ -33,9 +34,12 @@ def permission_required(permission_name):
                     g.user_permissions = [p['name'] for p in user_permissions_data]
                     # التحقق من صلاحية API Access
                     if 'can_access_api' not in g.user_permissions:
+                        conn.close()
                         return jsonify({'message': 'ليس لديك صلاحية الوصول إلى الـ API.'}), 403 # Forbidden
                 else:
+                    conn.close()
                     return jsonify({'message': 'مفتاح API غير صالح.'}), 401 # Unauthorized
+                conn.close()
             
             # إذا لم يتم المصادقة عبر API Key، حاول المصادقة عبر الجلسة (لواجهة المستخدم الرسومية)
             if g.user is None: # إذا لم يكن g.user قد تم تعيينه بواسطة API Key
@@ -43,8 +47,6 @@ def permission_required(permission_name):
                 if user_id:
                     conn = get_db_connection()
                     g.user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-                    conn.close()
-                    # جلب صلاحيات المستخدم الجلسة
                     if g.user:
                         user_permissions_data = conn.execute('''
                             SELECT p.name FROM permissions p
@@ -52,6 +54,7 @@ def permission_required(permission_name):
                             WHERE rp.role_id = ?
                         ''', (g.user['role_id'],)).fetchall()
                         g.user_permissions = [p['name'] for p in user_permissions_data]
+                    conn.close()
 
             # التحقق النهائي من تسجيل الدخول والصلاحيات
             if g.user is None:

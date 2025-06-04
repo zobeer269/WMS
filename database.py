@@ -158,6 +158,15 @@ def init_db():
     except sqlite3.OperationalError:
         pass
 
+    # ترحيل مفاتيح API الحالية إلى صيغة مجزئة إذا كانت مخزنة كنص عادي
+    existing_keys = cursor.execute("SELECT id, api_key FROM users WHERE api_key IS NOT NULL").fetchall()
+    for row in existing_keys:
+        key = row['api_key']
+        if key and len(key) != 64:
+            hashed = hashlib.sha256(key.encode()).hexdigest()
+            cursor.execute("UPDATE users SET api_key = ? WHERE id = ?", (hashed, row['id']))
+            print(f"Migrated API key for user ID {row['id']} to hashed version")
+
 
     # إضافة الأدوار الافتراضية
     cursor.execute("INSERT OR IGNORE INTO roles (id, name) VALUES (1, 'مستخدم عادي')")
@@ -203,8 +212,9 @@ def init_db():
     if cursor.fetchone() is None:
         # توليد مفتاح API افتراضي للمدير
         default_api_key = str(uuid.uuid4())
+        hashed_default_api_key = hashlib.sha256(default_api_key.encode()).hexdigest()
         cursor.execute("INSERT INTO users (username, password_hash, role_id, api_key) VALUES (?, ?, ?, ?)",
-                       (admin_username, hashed_password, admin_role_id, default_api_key))
+                       (admin_username, hashed_password, admin_role_id, hashed_default_api_key))
         print(f"تم إنشاء المستخدم المدير الافتراضي '{admin_username}' بكلمة مرور '{admin_password}' ومفتاح API: {default_api_key}.")
 
     conn.commit()
