@@ -1,4 +1,4 @@
-from flask import Flask, g, session, redirect, url_for, flash, request
+from flask import Flask, g, session, redirect, url_for, flash, request, jsonify
 import sqlite3
 import functools
 from config import Config
